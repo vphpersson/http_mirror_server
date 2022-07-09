@@ -40,7 +40,7 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
         )
 
         self.add_argument(
-            '--log_directory',
+            '--log-directory',
             help='The path of the directory where to write log files.'
         )
 
