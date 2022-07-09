@@ -41,7 +41,8 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
 
         self.add_argument(
             '--log-directory',
-            help='The path of the directory where to write log files.'
+            help='The path of the directory where to write log files.',
+            action=self._CheckLogDirectoryAction
         )
 
         self.add_argument(
