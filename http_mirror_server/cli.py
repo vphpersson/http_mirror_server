@@ -82,7 +82,7 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
         ):
 
             if (log_directory_path := Path(log_directory)).exists():
-                setattr(namespace, 'log_directory_path', log_directory_path)
+                setattr(namespace, self.dest, log_directory_path)
             else:
                 parser.error(message='The specified log directory does not exist.')
 
