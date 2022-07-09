@@ -36,6 +36,7 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
         self.add_argument(
             '--port',
             help='The port on which to listen.',
+            type=int,
             default=8080
         )
 
