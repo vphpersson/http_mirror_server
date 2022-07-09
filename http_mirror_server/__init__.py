@@ -11,6 +11,9 @@ LOG: Logger = getLogger(__name__)
 
 
 async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_trie: PublicSuffixListTrie | None):
+
+    LOG.debug(msg='Handling a request...')
+
     try:
         while True:
             source_ip: str | None = None
@@ -48,16 +51,21 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
                     case _:
                         LOG.warning(msg=f'Unexpected socket type: {socket.type}')
 
+            LOG.debug(msg='Reading the request line...')
             http_request_line = await reader.readline()
 
+            LOG.debug(msg='Reading headers...')
             raw_headers = bytearray()
             while header_line_bytes := await reader.readline():
                 raw_headers += header_line_bytes
                 if not header_line_bytes.rstrip():
                     break
 
+            LOG.debug(msg='Reading body...')
             body = await reader.read()
             writer.close()
+
+            LOG.debug(msg='Building the ECS entry...')
 
             entry: Base = entry_from_http_request(
                 raw_request_line=http_request_line,
