@@ -5,7 +5,7 @@ from asyncio import run as asyncio_run, start_server
 from typing import NoReturn, Type
 from functools import partial
 from logging.handlers import TimedRotatingFileHandler
-from logging import INFO, StreamHandler
+from logging import INFO, DEBUG, StreamHandler
 
 from ecs_tools_py import make_log_handler
 
@@ -29,12 +29,12 @@ async def main() -> NoReturn:
         log_handler = StreamHandler()
 
     LOG.addHandler(hdlr=log_handler)
-    LOG.setLevel(level=INFO)
+    LOG.setLevel(level=DEBUG)
 
     from http_mirror_server import LOG as HTTP_MIRROR_SERVER_LOG
 
     HTTP_MIRROR_SERVER_LOG.addHandler(hdlr=log_handler)
-    HTTP_MIRROR_SERVER_LOG.setLevel(level=INFO)
+    HTTP_MIRROR_SERVER_LOG.setLevel(level=DEBUG)
 
     start_server_options = dict(
         client_connected_cb=partial(handle, public_suffix_list_trie=args.public_suffix_list_trie),
