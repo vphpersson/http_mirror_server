@@ -38,6 +38,7 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
             '--log-directory',
             help='The path of the directory where to write log files.',
             action=self._CheckLogDirectoryAction,
+            type=Path,
             default=os_environ.get('HTTP_MIRROR_SERVER_LOG_DIRECTORY')
         )
 
