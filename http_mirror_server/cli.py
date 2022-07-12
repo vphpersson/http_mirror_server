@@ -10,9 +10,8 @@ from public_suffix.structures.public_suffix_list_trie import PublicSuffixListTri
 class HTTPMirrorServerArgumentParser(TypedArgumentParser):
 
     class Namespace:
+        socket_path: Path
         log_directory: Path
-        host: str
-        port: int
         public_suffix_list_path: str | None
         public_suffix_list_trie: PublicSuffixListTrie | None
 
@@ -21,23 +20,17 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
             *args,
             **(
                 dict(
-                    description='Run an HTTP server that handles mirrored HTTP requests and logs them.',
+                    description='Run an UNIX domain socket server that handles mirrored HTTP entries and logs them.',
                     formatter_class=ArgumentDefaultsHelpFormatter
                 ) | kwargs
             )
         )
 
         self.add_argument(
-            '--host',
-            help='The host address on which to listen.',
-            default='localhost'
-        )
-
-        self.add_argument(
-            '--port',
-            help='The port on which to listen.',
-            type=int,
-            default=8080
+            '--socket-path',
+            help='The path of the socket on which the server listens.',
+            type=Path,
+            default='http_mirror_server.sock'
         )
 
         self.add_argument(
@@ -48,7 +41,7 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
 
         self.add_argument(
             '--public-suffix-list-path',
-            help='The file path of public suffix list file with which to parse HTTP paths.',
+            help='The file path of public suffix list file with which to parse HTTP request paths.',
             type=FileType(mode='r'),
             action=self._ParsePublicSuffixListPathAction,
             default=None

@@ -1,99 +1,99 @@
 from logging import Logger, getLogger
+from typing import TypedDict
 from asyncio import StreamReader, StreamWriter
-from socket import SocketKind, AddressFamily
+from json import loads as json_loads
+from base64 import b64decode
+from datetime import datetime
 
 from public_suffix.structures.public_suffix_list_trie import PublicSuffixListTrie
-from ecs_py import Base, Source, Network
-from ecs_tools_py import entry_from_http_request
+from ecs_py import Base, Source, Event
+from ecs_tools_py import entry_from_http_message, merge_ecs_entries
+
+from http_lib.structures.message import Request as HTTPRequest, Response as HTTPResponse, StatusLine
 
 
 LOG: Logger = getLogger(__name__)
 
 
+class HTTPMirrorRequest(TypedDict):
+    raw_base64: str
+    time: float
+
+
+class HTTPMirrorResponse(TypedDict):
+    headers: dict[str, str | list[str]]
+    body_base64: str
+    duration: str
+    status: int
+
+
+class HTTPMirrorEntry(TypedDict):
+    remote_addr: str
+    remote_port: str
+    request: HTTPMirrorRequest
+    response: HTTPMirrorResponse
+
+
 async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_trie: PublicSuffixListTrie | None):
+    while True:
+        http_mirror_entry_line = await reader.readline()
+        if not http_mirror_entry_line:
+            LOG.error(msg='The handle loop ended because of an empty entry line.')
+            break
 
-    LOG.debug(msg='Handling a request...')
+        http_mirror_entry: HTTPMirrorEntry = json_loads(http_mirror_entry_line.decode())
 
-    try:
-        while True:
-            source_ip: str | None = None
-            source_port: int | None = None
+        request_raw: bytes = b64decode(http_mirror_entry['request']['raw_base64'])
+        response_body_raw: bytes = b64decode(http_mirror_entry['response']['body_base64'])
 
-            peer_name = writer.get_extra_info(name='peername')
-
-            if not peer_name:
-                LOG.warning(msg='Unable to obtain the peer name of a connection.')
+        response_headers_list: list[tuple[str, str]] = []
+        for header_name, header_value in http_mirror_entry['response']['headers'].items():
+            if isinstance(header_value, list):
+                for header_list_value in header_value:
+                    response_headers_list.append((header_name, header_list_value))
             else:
-                source_ip, source_port = peer_name
+                response_headers_list.append((header_name, header_value))
 
-            network_type: str | None = None
-            network_transport: str | None = None
-            network_iana_number: int | None = None
-
-            if not (socket := writer.get_extra_info('socket')):
-                LOG.warning(msg='Unable to obtain the socket of a connection.')
-            else:
-                network_iana_number = socket.proto
-
-                match socket.family:
-                    case AddressFamily.AF_INET:
-                        network_type = 'ipv4'
-                    case AddressFamily.AF_INET6:
-                        network_type = 'ipv6'
-                    case _:
-                        LOG.warning(msg=f'Unexpected socket family: {socket.family}')
-
-                match socket.type:
-                    case SocketKind.SOCK_STREAM:
-                        network_transport = 'tcp'
-                    case SocketKind.SOCK_DGRAM:
-                        network_transport = 'udp'
-                    case _:
-                        LOG.warning(msg=f'Unexpected socket type: {socket.type}')
-
-            LOG.debug(msg='Reading the request line...')
-            http_request_line = await reader.readline()
-
-            LOG.debug(msg='Reading headers...')
-            raw_headers = bytearray()
-            while header_line_bytes := await reader.readline():
-                raw_headers += header_line_bytes
-                if not header_line_bytes.rstrip():
-                    break
-
-            LOG.debug(msg='Reading body...')
-            body = await reader.read()
-            writer.close()
-
-            LOG.debug(msg='Building the ECS entry...')
-
-            entry: Base = entry_from_http_request(
-                raw_request_line=http_request_line,
-                raw_headers=bytes(raw_headers),
-                raw_body=body,
+        entry: Base = merge_ecs_entries(
+            entry_from_http_message(
+                http_message=HTTPRequest.from_bytes(byte_string=request_raw, store_raw=True),
+                include_decompressed_body=True,
                 use_host_header=True,
                 use_forwarded_header=True,
-                include_decompressed_body=True,
                 public_suffix_list_trie=public_suffix_list_trie
+            ),
+            entry_from_http_message(
+                http_message=HTTPResponse(
+                    start_line=StatusLine(status_code=http_mirror_entry['response']['status']),
+                    headers=response_headers_list,
+                    body=response_body_raw.decode(encoding='charmap')
+                )
             )
+        )
 
-            if peer_name:
-                source_entry: Source = entry.get_field_value(field_name='source', create_namespaces=True)
-                source_entry.ip = source_entry.address = source_ip
-                source_entry.port = source_port
+        entry.source = Source(
+            address=http_mirror_entry['remote_addr'],
+            ip=http_mirror_entry['remote_addr'],
+            port=int(http_mirror_entry['remote_port'])
+        )
 
-            network_entry: Network = entry.get_field_value(field_name='network', create_namespaces=True)
-            network_entry.direction = 'ingress'
-            network_entry.type = network_type
-            network_entry.transport = network_transport
-            network_entry.iana_number = network_iana_number
-            network_entry.protocol = 'http'
+        request_timestamp: float = http_mirror_entry['request']['time']
 
-            LOG.info(
-                msg='A mirrored HTTP request was handled.',
-                extra=entry.to_dict() | dict(_ecs_logger_handler_options=dict(merge_extra=True))
-            )
+        duration: float | None = None
+        response_datetime: datetime | None = None
 
-            break
-    except:
-        LOG.exception(msg='An unexpected error occurred when handing a mirrored HTTP request.')
+        duration_str: str | None = http_mirror_entry['response'].get('duration')
+        if duration_str:
+            duration = float(duration_str)
+            response_datetime = datetime.fromtimestamp(request_timestamp + duration).astimezone()
+
+        entry.event = Event(
+            start=datetime.fromtimestamp(request_timestamp).astimezone(),
+            duration=duration,
+            end=response_datetime
+        )
+
+        LOG.info(
+            msg='A mirrored HTTP request was handled.',
+            extra=entry.to_dict() | dict(_ecs_logger_handler_options=dict(merge_extra=True))
+        )
