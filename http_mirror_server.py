@@ -11,12 +11,14 @@ from ecs_tools_py import make_log_handler
 
 from http_mirror_server import handle
 from http_mirror_server.cli import HTTPMirrorServerArgumentParser
+from http_mirror_server.environ import parse_environment
 
 LOG: Logger = getLogger(__name__)
 
 
 async def main() -> NoReturn:
     args: Type[HTTPMirrorServerArgumentParser.Namespace] = HTTPMirrorServerArgumentParser().parse_args()
+    parse_environment(namespace=args)
 
     provider_name = 'HTTP Mirror Server'
 
