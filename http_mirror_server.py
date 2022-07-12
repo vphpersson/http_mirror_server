@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from logging import Logger, getLogger
-from asyncio import run as asyncio_run, start_server
+from asyncio import run as asyncio_run, start_unix_server
 from typing import NoReturn, Type
 from functools import partial
 from logging.handlers import TimedRotatingFileHandler
@@ -38,11 +38,11 @@ async def main() -> NoReturn:
 
     start_server_options = dict(
         client_connected_cb=partial(handle, public_suffix_list_trie=args.public_suffix_list_trie),
-        host=args.host,
-        port=args.port
+        path=str(args.socket_path)
     )
-    async with await start_server(**start_server_options) as http_server:
-        LOG.info(msg=f'Running server on host "{args.host}" on port "{args.port}"...')
+    async with await start_unix_server(**start_server_options) as http_server:
+        LOG.info(msg=f'Running the server with the UNIX domain socket path "{args.socket_path}"...')
+        args.socket_path.chmod(0o766)
         await http_server.serve_forever()
 
 
