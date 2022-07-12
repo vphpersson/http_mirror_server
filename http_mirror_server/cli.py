@@ -2,7 +2,6 @@ from argparse import FileType, Action, ArgumentParser, Namespace, ArgumentDefaul
 from typing import Type
 from pathlib import Path
 from io import TextIOWrapper
-from os import environ as os_environ
 
 from typed_argument_parser import TypedArgumentParser
 from public_suffix.structures.public_suffix_list_trie import PublicSuffixListTrie
@@ -31,23 +30,19 @@ class HTTPMirrorServerArgumentParser(TypedArgumentParser):
             '--socket-path',
             help='The path of the socket on which the server listens.',
             type=Path,
-            default=os_environ.get('HTTP_MIRROR_SERVER_SOCKET_PATH', 'http_mirror_server.sock')
         )
 
         self.add_argument(
             '--log-directory',
             help='The path of the directory where to write log files.',
-            action=self._CheckLogDirectoryAction,
-            type=Path,
-            default=os_environ.get('HTTP_MIRROR_SERVER_LOG_DIRECTORY')
+            action=self._CheckLogDirectoryAction
         )
 
         self.add_argument(
             '--public-suffix-list-path',
             help='The file path of public suffix list file with which to parse HTTP request paths.',
             type=FileType(mode='r'),
-            action=self._ParsePublicSuffixListPathAction,
-            default=os_environ.get('HTTP_MIRROR_SERVER_PUBLIC_SUFFIX_LIST_PATH')
+            action=self._ParsePublicSuffixListPathAction
         )
 
     def parse_args(self, *args, **kwargs) -> Type[Namespace]:
