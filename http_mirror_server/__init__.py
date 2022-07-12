@@ -41,6 +41,7 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
             LOG.error(msg='The handle loop ended because of an empty entry line.')
             break
 
+        # TODO: Add more fields, to populate `network` e.g. (and `destination.ip`?)
         http_mirror_entry: HTTPMirrorEntry = json_loads(http_mirror_entry_line.decode())
 
         request_raw: bytes = b64decode(http_mirror_entry['request']['raw_base64'])
@@ -94,6 +95,6 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
         )
 
         LOG.info(
-            msg='A mirrored HTTP request was handled.',
+            msg='A mirrored HTTP request-response pair was handled.',
             extra=entry.to_dict() | dict(_ecs_logger_handler_options=dict(merge_extra=True))
         )
