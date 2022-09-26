@@ -57,7 +57,7 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
 
         entry: Base = merge_ecs_entries(
             entry_from_http_message(
-                http_message=HTTPRequest.from_bytes(byte_string=request_raw, store_raw=True),
+                http_message=HTTPRequest.from_bytes(data=request_raw, store_raw=True),
                 include_decompressed_body=True,
                 use_host_header=True,
                 use_forwarded_header=True,
@@ -67,7 +67,7 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
                 http_message=HTTPResponse(
                     start_line=StatusLine(status_code=http_mirror_entry['response']['status']),
                     headers=response_headers_list,
-                    body=response_body_raw.decode(encoding='charmap')
+                    body=memoryview(response_body_raw)
                 )
             )
         )
