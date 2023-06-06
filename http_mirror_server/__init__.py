@@ -77,23 +77,22 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
                         headers=response_headers_list,
                         body=memoryview(response_body_raw)
                     )
+                ),
+                Base(
+                    destination=Destination(
+                        ip=http_mirror_entry['server_addr'],
+                        port=int(http_mirror_entry['server_port'])
+                    ),
+                    source=Source(
+                        address=http_mirror_entry['remote_addr'],
+                        ip=http_mirror_entry['remote_addr'],
+                        port=int(http_mirror_entry['remote_port'])
+                    ),
+                    network=Network(
+                        transport='tcp',
+                        protocol=http_mirror_entry['scheme']
+                    )
                 )
-            )
-
-            entry.source = Source(
-                address=http_mirror_entry['remote_addr'],
-                ip=http_mirror_entry['remote_addr'],
-                port=int(http_mirror_entry['remote_port'])
-            )
-
-            entry.destination = Destination(
-                ip=http_mirror_entry['server_addr'],
-                port=int(http_mirror_entry['server_port'])
-            )
-
-            entry.network = Network(
-                transport='tcp',
-                protocol=http_mirror_entry['scheme']
             )
 
             request_timestamp: float = http_mirror_entry['request']['time']
