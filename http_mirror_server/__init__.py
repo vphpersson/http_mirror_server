@@ -87,7 +87,6 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
             )
 
             entry.destination = Destination(
-                address=http_mirror_entry['server_addr'],
                 ip=http_mirror_entry['server_addr'],
                 port=int(http_mirror_entry['server_port'])
             )

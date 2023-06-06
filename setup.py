@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='http_mirror_server',
-    version='0.26',
+    version='0.27',
     packages=find_packages(),
     install_requires=[
         'typed_argument_parser @ git+https://github.com/vphpersson/typed_argument_parser.git#egg=typed_argument_parser',
