@@ -6,7 +6,7 @@ from base64 import b64decode
 from datetime import datetime
 
 from public_suffix.structures.public_suffix_list_trie import PublicSuffixListTrie
-from ecs_py import Base, Source, Event
+from ecs_py import Base, Source, Event, Destination, Network
 from ecs_tools_py import entry_from_http_message, merge_ecs_entries
 
 from http_lib.structures.message import Request as HTTPRequest, Response as HTTPResponse, StatusLine
@@ -28,8 +28,11 @@ class HTTPMirrorResponse(TypedDict):
 
 
 class HTTPMirrorEntry(TypedDict):
+    server_addr: str
+    server_port: str
     remote_addr: str
     remote_port: str
+    scheme: str
     request: HTTPMirrorRequest
     response: HTTPMirrorResponse
 
@@ -76,6 +79,17 @@ async def handle(reader: StreamReader, writer: StreamWriter, public_suffix_list_
             address=http_mirror_entry['remote_addr'],
             ip=http_mirror_entry['remote_addr'],
             port=int(http_mirror_entry['remote_port'])
+        )
+
+        entry.destination = Destination(
+            address=http_mirror_entry['server_addr'],
+            ip=http_mirror_entry['server_addr'],
+            port=int(http_mirror_entry['server_port'])
+        )
+
+        entry.network = Network(
+            transport='tcp',
+            protocol=http_mirror_entry['scheme']
         )
 
         request_timestamp: float = http_mirror_entry['request']['time']
