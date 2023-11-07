@@ -1,0 +1,12 @@
+[project]
+name = "http_mirror_server"
+version = "0.29"
+dependencies = [
+    'typed_argument_parser @ git+https://github.com/vphpersson/typed_argument_parser.git#egg=typed_argument_parser',
+    'public_suffix @ git+https://github.com/vphpersson/public_suffix.git#egg=public_suffix',
+    'ecs_py @ git+https://github.com/vphpersson/ecs_py.git#egg=ecs_py',
+    'ecs_tools_py @ git+https://github.com/vphpersson/ecs_tools_py.git#egg=ecs_tools_py',
+    'ecs_tools_py[http] @ git+https://github.com/vphpersson/ecs_tools_py.git#egg=ecs_tools_py',
+    'ecs_tools_py[public_suffix] @ git+https://github.com/vphpersson/ecs_tools_py.git#egg=ecs_tools_py',
+    'http_lib @ git+https://github.com/vphpersson/http_lib.git#egg=http_lib'
+]
